@@ -1,0 +1,84 @@
+﻿@page "/programclasses/create"
+@inject PortalSystemWebApp.Data.ApplicationDbContext DB
+@using PortalSystemWebApp.Model
+@using Microsoft.AspNetCore.Identity
+@using PortalSystemWebApp.Data;
+@using PortalSystemWebApp.Components.Account;
+
+@inject NavigationManager NavigationManager
+@inject IdentityUserAccessor UserAccessor
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h4>ProgramClass</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="ProgramClass" OnValidSubmit="AddProgramClass" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label> 
+                <InputText id="name" @bind-Value="ProgramClass.Name" class="form-control" /> 
+                <ValidationMessage For="() => ProgramClass.Name" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="detail" class="form-label">Detail:</label> 
+                <InputText id="detail" @bind-Value="ProgramClass.Detail" class="form-control" /> 
+                <ValidationMessage For="() => ProgramClass.Detail" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="gradelevel" class="form-label">GradeLevel:</label> 
+                <InputNumber id="gradelevel" @bind-Value="ProgramClass.GradeLevel" class="form-control" /> 
+                <ValidationMessage For="() => ProgramClass.GradeLevel" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="maxclasssize" class="form-label">MaxClassSize:</label> 
+                <InputNumber id="maxclasssize" @bind-Value="ProgramClass.MaxClassSize" class="form-control" /> 
+                <ValidationMessage For="() => ProgramClass.MaxClassSize" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="starttime" class="form-label">StartTime:</label> 
+                <InputDate id="starttime" @bind-Value="ProgramClass.StartTime" class="form-control" /> 
+                <ValidationMessage For="() => ProgramClass.StartTime" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="endtime" class="form-label">EndTime:</label> 
+                <InputDate id="endtime" @bind-Value="ProgramClass.EndTime" class="form-control" /> 
+                <ValidationMessage For="() => ProgramClass.EndTime" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/programclasses">Back to List</a>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    public ProgramClass ProgramClass { get; set; } = new();
+
+    private ApplicationUser user = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+    }
+
+    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD
+    public async Task AddProgramClass()
+    {
+        //ProgramClass.EnrolledUsers.Add(user);
+        DB.ProgramClass.Add(ProgramClass);
+        await DB.SaveChangesAsync();
+        NavigationManager.NavigateTo("/programclasses");
+    }
+}

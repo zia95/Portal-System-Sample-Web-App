@@ -1,0 +1,143 @@
+﻿@page "/programclasses/details"
+@inject PortalSystemWebApp.Data.ApplicationDbContext DB
+@using PortalSystemWebApp.Model
+@inject NavigationManager NavigationManager
+@using Microsoft.EntityFrameworkCore
+@using PortalSystemWebApp.Data;
+@using PortalSystemWebApp.Components.Account;
+@inject IdentityUserAccessor UserAccessor;
+@inject PortalSystemWebApp.Data.ApplicationDbContext DB
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h4>ProgramClass</h4>
+    <hr />
+    @if (programclass is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else 
+    {
+        <dl class="row">
+            <dt class="col-sm-2">Name</dt>
+            <dd class="col-sm-10">@programclass.Name</dd>
+            <dt class="col-sm-2">Detail</dt>
+            <dd class="col-sm-10">@programclass.Detail</dd>
+            <dt class="col-sm-2">GradeLevel</dt>
+            <dd class="col-sm-10">@programclass.GradeLevel</dd>
+            <dt class="col-sm-2">MaxClassSize</dt>
+            <dd class="col-sm-10">@programclass.MaxClassSize</dd>
+            <dt class="col-sm-2">StartTime</dt>
+            <dd class="col-sm-10">@programclass.StartTime</dd>
+            <dt class="col-sm-2">EndTime</dt>
+            <dd class="col-sm-10">@programclass.EndTime</dd>
+        </dl>
+        <div>
+            
+            
+            @if (!GetClassEnrollmentStatus())
+            {
+                <EditForm method="post" Model="programclass" OnValidSubmit="EnrollInClass" FormName="details" Enhance>
+                    <button type="submit" class="btn btn-primary">Enroll in Class</button>
+                </EditForm>
+            }
+            else
+            {
+                <EditForm method="post" Model="programclass" OnValidSubmit="DropOutFromClass" FormName="details" Enhance>
+                    <button type="submit" class="btn btn-primary">Drop out From Class</button>
+                </EditForm>
+            }
+        </div>
+        @if(is_user_admin)
+        {
+            <br />
+            <h5>Enrolled Users</h5>
+            
+            <QuickGrid Class="table" Items="programclass.EnrolledUsers.AsQueryable()">
+                <PropertyColumn Property="_user => _user.UserName" />
+                <TemplateColumn Context="_user">
+                    <a href="@($"/programclasses/enrolleduserdetails?id={Id}&userid={_user.Id}")">Details</a>
+                </TemplateColumn>
+            </QuickGrid>
+        }
+        <div>
+            <a href="@($"/programclasses/edit?id={programclass.Id}")">Edit</a> |
+            <a href="@($"/programclasses")">Back to List</a>
+            
+        </div>
+    }
+</div>
+
+@code {
+    ProgramClass? programclass;
+
+    ApplicationUser? user;
+    bool is_user_admin;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    //[Inject]
+    //public AuthenticationStateProvider? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        is_user_admin = UserAccessor.IsUserAdmin(user);
+
+        programclass = await DB.ProgramClass.Include(e => e.EnrolledUsers).FirstOrDefaultAsync(m => m.Id == Id);
+
+
+        if (programclass is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+    async Task EnrollInClass()
+    {
+        var usr = DB.Users.FirstOrDefault(u => u.Id == user!.Id);
+        programclass!.EnrolledUsers.Add(usr!);
+        //DB.Attach(user!);
+        //DB.Attach(programclass!);
+        await DB.SaveChangesAsync();
+        NavigationManager.NavigateTo($"/programclasses/details?id={Id}");
+    }
+    async Task DropOutFromClass()
+    {
+
+        for (int i = 0; i < programclass!.EnrolledUsers.Count; i++)
+        {
+            if (programclass!.EnrolledUsers[i].Id == user!.Id)
+            {
+                programclass!.EnrolledUsers.RemoveAt(i);
+                await DB.SaveChangesAsync();
+                break;
+            }
+        }
+        
+        NavigationManager.NavigateTo($"/programclasses/details?id={Id}");
+    }
+    async Task RemoveUserFromClass(ApplicationUser userToRemove)
+    {
+
+        for (int i = 0; i < programclass!.EnrolledUsers.Count; i++)
+        {
+            if (programclass!.EnrolledUsers[i].Id == user!.Id)
+            {
+                //programclass!.EnrolledUsers.RemoveAt(i);
+                //await DB.SaveChangesAsync();
+                break;
+            }
+        }
+
+        NavigationManager.NavigateTo($"/programclasses/details?id={Id}");
+    }
+    bool GetClassEnrollmentStatus() => programclass!.EnrolledUsers.Any(u => u.Email == user!.Email);
+}

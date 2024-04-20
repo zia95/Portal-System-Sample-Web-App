@@ -1,0 +1,121 @@
+﻿@page "/programclasses/enrolleduserdetails"
+@inject PortalSystemWebApp.Data.ApplicationDbContext DB
+@using PortalSystemWebApp.Model
+@inject NavigationManager NavigationManager
+@using Microsoft.EntityFrameworkCore
+@using PortalSystemWebApp.Data;
+@using PortalSystemWebApp.Components.Account;
+@inject IdentityUserAccessor UserAccessor;
+@inject PortalSystemWebApp.Data.ApplicationDbContext DB
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h4>Enrolled User Details</h4>
+    <hr />
+    @if (user is null || programclass is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else 
+    {
+        <h5>User Details</h5>
+        <dl class="row">
+            <dt class="col-sm-2">UserId</dt>
+            <dd class="col-sm-10">@user.Id</dd>
+            <dt class="col-sm-2">UserName</dt>
+            <dd class="col-sm-10">@user.UserName</dd>
+            <dt class="col-sm-2">Email</dt>
+            <dd class="col-sm-10">@user.Email</dd>
+            <dt class="col-sm-2">PhoneNumber</dt>
+            <dd class="col-sm-10">@user.PhoneNumber</dd>
+        </dl>
+        <br/>
+        <h5>Program Details</h5>
+        <dl class="row">
+            <dt class="col-sm-2">Name</dt>
+            <dd class="col-sm-10">@programclass.Name</dd>
+            <dt class="col-sm-2">Detail</dt>
+            <dd class="col-sm-10">@programclass.Detail</dd>
+            <dt class="col-sm-2">GradeLevel</dt>
+            <dd class="col-sm-10">@programclass.GradeLevel</dd>
+            <dt class="col-sm-2">MaxClassSize</dt>
+            <dd class="col-sm-10">@programclass.MaxClassSize</dd>
+            <dt class="col-sm-2">StartTime</dt>
+            <dd class="col-sm-10">@programclass.StartTime</dd>
+            <dt class="col-sm-2">EndTime</dt>
+            <dd class="col-sm-10">@programclass.EndTime</dd>
+        </dl>
+        <div>
+            <EditForm method="post" Model="programclass" OnValidSubmit="RemoveUserFromClass" FormName="enrolleduserdetails" Enhance>
+                <button type="submit" class="btn btn-primary">Remove from Class</button>
+            </EditForm>
+        </div>
+        <div>
+            <a href="@($"/programclasses/details?id={Id}")">Back to Class Details</a>
+        </div>
+    }
+</div>
+
+@code {
+    ProgramClass? programclass;
+
+    ApplicationUser? user;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? UserId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    //[Inject]
+    //public AuthenticationStateProvider? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var curr_user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        if (!UserAccessor.IsUserAdmin(curr_user))
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+
+        programclass = await DB.ProgramClass.Include(e => e.EnrolledUsers).FirstOrDefaultAsync(m => m.Id == Id);
+
+
+        if (programclass is not null)
+        {
+            user = programclass.EnrolledUsers.SingleOrDefault(u => u.Id == UserId);
+
+            if (user is null)
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+        }
+        else
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+    async Task RemoveUserFromClass()
+    {
+
+        for (int i = 0; i < programclass!.EnrolledUsers.Count; i++)
+        {
+            if (programclass!.EnrolledUsers[i].Id == UserId)
+            {
+                programclass!.EnrolledUsers.RemoveAt(i);
+                await DB.SaveChangesAsync();
+                break;
+            }
+        }
+
+        NavigationManager.NavigateTo($"/programclasses/details?id={Id}");
+    }
+}

@@ -1,0 +1,48 @@
+﻿@page "/programclasses"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using PortalSystemWebApp.Components.Account;
+@using PortalSystemWebApp.Data;
+@inject PortalSystemWebApp.Data.ApplicationDbContext DB
+@using PortalSystemWebApp.Model
+@inject IdentityUserAccessor UserAccessor
+
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="programclasses/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="DB.ProgramClass">
+    <PropertyColumn Property="programclass => programclass.Name" />
+    <PropertyColumn Property="programclass => programclass.Detail" />
+    <PropertyColumn Property="programclass => programclass.GradeLevel" />
+    <PropertyColumn Property="programclass => programclass.MaxClassSize" />
+    <PropertyColumn Property="programclass => programclass.StartTime" />
+    <PropertyColumn Property="programclass => programclass.EndTime" />
+
+    <TemplateColumn Context="programclass">
+        @if(UserAccessor.IsUserAdmin(user!))
+        {
+            <a href="@($"programclasses/edit?id={programclass.Id}")">Edit</a>
+            <span>|</span>
+            <a href="@($"programclasses/delete?id={programclass.Id}")">Delete</a>
+            <span>|</span>
+        }
+        <a href="@($"programclasses/details?id={programclass.Id}")">Details</a>
+    </TemplateColumn>
+</QuickGrid>
+
+
+@code 
+{
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+    ApplicationUser? user;
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+    }
+}
